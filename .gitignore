@@ -1,0 +1,8 @@
+# IMPORTANT: Never commit your .env file — it contains secret keys!
+.env
+
+# Node.js dependencies folder (reinstalled with npm install)
+node_modules/
+
+# Mac system file
+.DS_Store

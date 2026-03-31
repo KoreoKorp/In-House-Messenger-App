@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jean's Messenger — Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple:      #6B46C1;
+      --purple-dark: #553C9A;
+      --purple-light:#EDE9FE;
+      --bg:          #F3F4F6;
+      --white:       #FFFFFF;
+      --text:        #1F2937;
+      --text-soft:   #6B7280;
+      --border:      #E5E7EB;
+      --red:         #DC2626;
+      --red-light:   #FEE2E2;
+      --green:       #16A34A;
+      --green-light: #DCFCE7;
+      --shadow:      0 1px 6px rgba(0,0,0,0.08);
+      --shadow-lg:   0 8px 30px rgba(0,0,0,0.12);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Login Screen ──────────────────────────────────────── */
+    #login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      background: linear-gradient(135deg, #6B46C1, #9333EA);
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .login-card .icon { font-size: 48px; margin-bottom: 12px; }
+    .login-card h1    { font-size: 26px; margin-bottom: 6px; }
+    .login-card p     { color: var(--text-soft); margin-bottom: 26px; font-size: 15px; }
+
+    .login-card input {
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 17px;
+      font-family: inherit;
+      color: var(--text);
+      margin-bottom: 14px;
+      transition: border-color 0.15s;
+    }
+
+    .login-card input:focus {
+      outline: none;
+      border-color: var(--purple);
+    }
+
+    .login-card button {
+      width: 100%;
+      background: var(--purple);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .login-card button:hover { background: var(--purple-dark); }
+
+    .login-error {
+      color: var(--red);
+      font-size: 14px;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    /* ── Main App ──────────────────────────────────────────── */
+    #app { display: none; }
+
+    .app-header {
+      background: var(--purple);
+      color: white;
+      padding: 16px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .app-header h1    { font-size: 22px; font-weight: 700; }
+    .app-header p     { font-size: 14px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+    .app-header .sign { font-size: 14px; color: rgba(255,255,255,0.7); cursor: pointer; }
+    .app-header .sign:hover { color: white; }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+
+    /* ── Add Contact Card ──────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 26px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: var(--text);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .form-group {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 16px;
+      font-family: inherit;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--purple);
+    }
+
+    .add-btn {
+      background: var(--purple);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 11px 26px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      align-self: flex-end;
+      white-space: nowrap;
+    }
+
+    .add-btn:hover   { background: var(--purple-dark); }
+    .add-btn:active  { transform: scale(0.97); }
+    .add-btn:disabled { background: #9CA3AF; cursor: not-allowed; }
+
+    .form-error {
+      color: var(--red);
+      font-size: 14px;
+      margin-top: 10px;
+      min-height: 18px;
+    }
+
+    /* ── Contacts Table ────────────────────────────────────── */
+    .contacts-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .contacts-header h2 { font-size: 18px; font-weight: 700; }
+    .contact-count      { color: var(--text-soft); font-size: 14px; }
+
+    .contact-row {
+      background: var(--white);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 10px;
+      animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .contact-initial {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--purple-light);
+      color: var(--purple);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .contact-details { flex: 1; min-width: 0; }
+    .contact-name    { font-size: 17px; font-weight: 700; }
+    .contact-phone   { font-size: 13px; color: var(--text-soft); margin-top: 2px; }
+
+    .contact-link-box {
+      flex: 1.5;
+      min-width: 0;
+    }
+
+    .contact-link-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 4px;
+    }
+
+    .contact-link-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .contact-link-text {
+      font-size: 13px;
+      color: var(--purple);
+      font-family: monospace;
+      background: var(--purple-light);
+      padding: 5px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .copy-btn {
+      background: var(--purple);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover { background: var(--purple-dark); }
+    .copy-btn.copied { background: var(--green); }
+
+    .qr-btn {
+      background: var(--bg);
+      color: var(--text);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .qr-btn:hover { border-color: var(--purple); color: var(--purple); }
+
+    .delete-btn {
+      background: var(--red-light);
+      color: var(--red);
+      border: none;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .delete-btn:hover { background: var(--red); color: white; }
+
+    /* QR popup */
+    .qr-popup {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+
+    .qr-popup.visible { display: flex; }
+
+    .qr-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .qr-card h3    { font-size: 20px; margin-bottom: 6px; }
+    .qr-card p     { color: var(--text-soft); font-size: 14px; margin-bottom: 18px; }
+    .qr-card img   { width: 180px; height: 180px; border-radius: 12px; }
+    .qr-card .qr-link { font-size: 13px; color: var(--purple); word-break: break-all; margin: 14px 0; font-family: monospace; }
+
+    .qr-close {
+      background: var(--bg);
+      border: none;
+      border-radius: 10px;
+      padding: 10px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .no-contacts {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-soft);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .no-contacts .icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* ── Toast ──────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #1F2937;
+      color: white;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      z-index: 200;
+      transition: transform 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 600px) {
+      .contact-row { flex-wrap: wrap; }
+      .contact-link-box { width: 100%; flex: none; }
+      .app-header { padding: 14px 16px; }
+      .container  { padding: 20px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="icon">🔐</div>
+    <h1>Admin Panel</h1>
+    <p>Jean's Messenger — Manage contacts and links</p>
+    <input type="password" id="admin-password" placeholder="Enter admin password" onkeydown="if(event.key==='Enter') login()">
+    <button onclick="login()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div class="app-header">
+    <div>
+      <h1>⚙️ Jean's Messenger — Admin</h1>
+      <p>Manage contacts and their private chat links</p>
+    </div>
+    <span class="sign" onclick="signOut()">Sign Out</span>
+  </div>
+
+  <div class="container">
+
+    <!-- Add Contact -->
+    <div class="card">
+      <h2>➕ Add a New Contact</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="new-name" placeholder="e.g. Margaret Johnson" onkeydown="if(event.key==='Enter') addContact()">
+        </div>
+        <div class="form-group">
+          <label>Phone Number (optional)</label>
+          <input type="tel" id="new-phone" placeholder="e.g. 555-867-5309" onkeydown="if(event.key==='Enter') addContact()">
+        </div>
+        <button class="add-btn" onclick="addContact()" id="add-btn">Add Contact</button>
+      </div>
+      <div class="form-error" id="form-error"></div>
+    </div>
+
+    <!-- Contact List -->
+    <div class="contacts-header">
+      <h2>👥 Jean's Contacts</h2>
+      <span class="contact-count" id="contact-count"></span>
+    </div>
+    <div id="contacts-list">
+      <div class="no-contacts">
+        <div class="icon">👤</div>
+        <div>No contacts yet.<br>Add someone above to get started!</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- QR Code Popup -->
+<div class="qr-popup" id="qr-popup" onclick="closeQr(event)">
+  <div class="qr-card" onclick="event.stopPropagation()">
+    <h3 id="qr-name"></h3>
+    <p>They can scan this QR code with their phone to open the chat</p>
+    <img id="qr-image" src="" alt="QR Code">
+    <div class="qr-link" id="qr-link"></div>
+    <button class="qr-close" onclick="closeQr()">Close</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── State ────────────────────────────────────────────────────
+let adminPassword = '';
+let contacts = [];
+
+// ── Login ─────────────────────────────────────────────────────
+function login() {
+  const pw = document.getElementById('admin-password').value.trim();
+  if (!pw) return;
+  adminPassword = pw;
+  loadContacts();
+}
+
+function signOut() {
+  adminPassword = '';
+  document.getElementById('admin-password').value = '';
+  document.getElementById('app').style.display         = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ── Load Contacts ─────────────────────────────────────────────
+async function loadContacts() {
+  try {
+    const res = await fetch('/api/contacts', {
+      headers: { 'x-admin-key': adminPassword }
+    });
+
+    if (res.status === 401) {
+      document.getElementById('login-error').textContent = '❌ Wrong password. Try again.';
+      adminPassword = '';
+      return;
+    }
+
+    contacts = await res.json();
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display          = 'block';
+    renderContacts();
+
+  } catch (err) {
+    document.getElementById('login-error').textContent = '❌ Could not connect to server.';
+  }
+}
+
+// ── Add Contact ───────────────────────────────────────────────
+async function addContact() {
+  const nameInput  = document.getElementById('new-name');
+  const phoneInput = document.getElementById('new-phone');
+  const errorEl    = document.getElementById('form-error');
+  const addBtn     = document.getElementById('add-btn');
+  const name       = nameInput.value.trim();
+  const phone      = phoneInput.value.trim();
+
+  errorEl.textContent = '';
+
+  if (!name) {
+    errorEl.textContent = 'Please enter a name.';
+    nameInput.focus();
+    return;
+  }
+
+  addBtn.disabled    = true;
+  addBtn.textContent = 'Adding...';
+
+  try {
+    const res  = await fetch('/api/contacts', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminPassword },
+      body:    JSON.stringify({ name, phone })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorEl.textContent = '❌ ' + (data.error || 'Something went wrong.');
+      return;
+    }
+
+    contacts.push(data);
+    renderContacts();
+    nameInput.value  = '';
+    phoneInput.value = '';
+    nameInput.focus();
+    showToast(`✅ ${data.name} added! Their chat link is ready.`);
+
+  } catch (err) {
+    errorEl.textContent = '❌ Could not connect. Is the server running?';
+  } finally {
+    addBtn.disabled    = false;
+    addBtn.textContent = 'Add Contact';
+  }
+}
+
+// ── Delete Contact ────────────────────────────────────────────
+async function deleteContact(id, name) {
+  if (!confirm(`Remove ${name}? Their chat link will stop working.\n\nThis cannot be undone.`)) return;
+
+  try {
+    const res = await fetch(`/api/contacts/${id}`, {
+      method:  'DELETE',
+      headers: { 'x-admin-key': adminPassword }
+    });
+
+    if (!res.ok) {
+      showToast('❌ Failed to remove contact.');
+      return;
+    }
+
+    contacts = contacts.filter(c => c.id !== id);
+    renderContacts();
+    showToast(`🗑️ ${name} removed.`);
+
+  } catch (err) {
+    showToast('❌ Could not connect. Is the server running?');
+  }
+}
+
+// ── Render Contacts ───────────────────────────────────────────
+function renderContacts() {
+  const list  = document.getElementById('contacts-list');
+  const count = document.getElementById('contact-count');
+
+  count.textContent = `${contacts.length} contact${contacts.length !== 1 ? 's' : ''}`;
+
+  if (contacts.length === 0) {
+    list.innerHTML = `
+      <div class="no-contacts">
+        <div class="icon">👤</div>
+        <div>No contacts yet.<br>Add someone above to get started!</div>
+      </div>`;
+    return;
+  }
+
+  const baseUrl = window.location.origin;
+
+  list.innerHTML = contacts.map(c => {
+    const chatLink  = `${baseUrl}/chat/${c.roomId}`;
+    const initial   = c.name.charAt(0).toUpperCase();
+    const phoneText = c.phone ? `📞 ${c.phone}` : 'No phone saved';
+
+    return `
+      <div class="contact-row" id="row-${c.id}">
+        <div class="contact-initial">${initial}</div>
+        <div class="contact-details">
+          <div class="contact-name">${escHtml(c.name)}</div>
+          <div class="contact-phone">${escHtml(phoneText)}</div>
+        </div>
+        <div class="contact-link-box">
+          <div class="contact-link-label">Their private chat link</div>
+          <div class="contact-link-row">
+            <div class="contact-link-text" title="${chatLink}">${chatLink}</div>
+            <button class="copy-btn" id="copy-${c.id}" onclick="copyLink('${c.id}', '${chatLink}')">Copy</button>
+            <button class="qr-btn"  onclick="showQr('${c.id}', '${escHtml(c.name)}', '${chatLink}')">QR</button>
+          </div>
+        </div>
+        <button class="delete-btn" onclick="deleteContact('${c.id}', '${escHtml(c.name)}')">Remove</button>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Copy Link ─────────────────────────────────────────────────
+async function copyLink(id, link) {
+  try {
+    await navigator.clipboard.writeText(link);
+    const btn = document.getElementById(`copy-${id}`);
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2500);
+  } catch (err) {
+    // Fallback for browsers without clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = link;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ Link copied!');
+  }
+}
+
+// ── QR Code ───────────────────────────────────────────────────
+function showQr(id, name, link) {
+  const encodedLink = encodeURIComponent(link);
+  document.getElementById('qr-name').textContent  = `${name}'s Chat Link`;
+  document.getElementById('qr-link').textContent  = link;
+  document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedLink}`;
+  document.getElementById('qr-popup').classList.add('visible');
+}
+
+function closeQr(e) {
+  if (!e || e.target === document.getElementById('qr-popup')) {
+    document.getElementById('qr-popup').classList.remove('visible');
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>

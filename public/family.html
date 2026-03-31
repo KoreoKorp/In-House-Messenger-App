@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Chat with Jean</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple:       #6B46C1;
+      --purple-dark:  #553C9A;
+      --purple-light: #EDE9FE;
+      --cream:        #F9FAFB;
+      --white:        #FFFFFF;
+      --gray-light:   #F3F4F6;
+      --gray:         #9CA3AF;
+      --text:         #1F2937;
+      --text-soft:    #6B7280;
+      --red:          #DC2626;
+      --green:        #16A34A;
+      --shadow:       0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      font-size: 16px;
+      overflow: hidden;
+    }
+
+    /* ── Loading / Error Screens ──────────────────────────── */
+    .fullscreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      gap: 20px;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .fullscreen .icon { font-size: 60px; }
+    .fullscreen h2    { font-size: 24px; font-weight: 700; }
+    .fullscreen p     { color: var(--text-soft); font-size: 16px; line-height: 1.6; max-width: 340px; }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid var(--purple-light);
+      border-top-color: var(--purple);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Main Chat Layout ─────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Header */
+    .chat-header {
+      background: var(--purple);
+      color: white;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .header-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .header-info    { flex: 1; }
+    .header-name    { font-size: 19px; font-weight: 700; }
+    .header-status  { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+
+    .header-status.online { color: #86EFAC; }
+
+    /* Messages */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+      background: var(--cream);
+    }
+
+    .msg-day-divider {
+      text-align: center;
+      font-size: 12px;
+      color: var(--gray);
+      margin: 6px 0;
+      position: relative;
+    }
+    .msg-day-divider::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 50%;
+      height: 1px;
+      background: #E5E7EB;
+      z-index: 0;
+    }
+    .msg-day-divider span {
+      background: var(--cream);
+      padding: 0 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .message {
+      display: flex;
+      flex-direction: column;
+      max-width: 75%;
+      gap: 3px;
+      animation: msgIn 0.2s ease;
+    }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.from-jean   { align-self: flex-start; align-items: flex-start; }
+    .message.from-family { align-self: flex-end;   align-items: flex-end; }
+    .message.from-me     { align-self: flex-end;   align-items: flex-end; }
+
+    .msg-sender {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-soft);
+      padding: 0 4px;
+    }
+
+    .msg-bubble {
+      padding: 11px 15px;
+      border-radius: 18px;
+      font-size: 16px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .from-jean   .msg-bubble {
+      background: var(--white);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow);
+    }
+
+    .from-family .msg-bubble,
+    .from-me     .msg-bubble {
+      background: var(--purple);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg-bubble.broadcast {
+      background: #FEE2E2;
+      color: var(--red);
+      font-weight: 700;
+      border: 2px solid var(--red);
+      border-radius: 14px !important;
+    }
+
+    .from-jean .msg-bubble.broadcast {
+      box-shadow: none;
+    }
+
+    .msg-time {
+      font-size: 11px;
+      color: var(--gray);
+      padding: 0 4px;
+    }
+
+    .msg-read {
+      font-size: 11px;
+      color: var(--purple);
+      padding: 0 4px;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    /* Typing indicator */
+    #typing-indicator {
+      padding: 6px 14px;
+      font-size: 14px;
+      color: var(--gray);
+      font-style: italic;
+      min-height: 28px;
+      flex-shrink: 0;
+    }
+
+    .typing-bubble {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--white);
+      padding: 8px 14px;
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow);
+    }
+
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--gray);
+      border-radius: 50%;
+      animation: typingDot 1.2s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingDot {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30%            { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* ── Input Area ───────────────────────────────────────── */
+    .input-area {
+      background: var(--white);
+      border-top: 1px solid #E5E7EB;
+      padding: 10px 12px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    #message-input {
+      flex: 1;
+      border: 2px solid #E5E7EB;
+      border-radius: 22px;
+      padding: 10px 16px;
+      font-size: 16px;
+      font-family: inherit;
+      color: var(--text);
+      resize: none;
+      max-height: 100px;
+      line-height: 1.5;
+      background: var(--gray-light);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    #message-input:focus {
+      outline: none;
+      border-color: var(--purple);
+      background: var(--white);
+    }
+
+    #send-btn {
+      background: var(--purple);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 46px;
+      height: 46px;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    #send-btn:hover  { background: var(--purple-dark); }
+    #send-btn:active { transform: scale(0.93); }
+    #send-btn:disabled { background: var(--gray); cursor: not-allowed; }
+
+    /* ── Toast ────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #1F2937;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      z-index: 100;
+      transition: transform 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Jean offline banner ──────────────────────────────── */
+    #jean-offline-banner {
+      background: #FEF9C3;
+      border-bottom: 1px solid #FDE68A;
+      color: #92400E;
+      text-align: center;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      display: none;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div id="loading-screen" class="fullscreen">
+  <div class="spinner"></div>
+  <p>Connecting to Jean's chat...</p>
+</div>
+
+<!-- Error screen -->
+<div id="error-screen" class="fullscreen" style="display:none">
+  <div class="icon">😕</div>
+  <h2>Link Not Found</h2>
+  <p>This chat link doesn't seem to be valid. Please ask for a new link to be sent to you.</p>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none">
+
+  <!-- Offline banner -->
+  <div id="jean-offline-banner">
+    ⏳ Jean isn't online right now — your message will be waiting when she opens her chat.
+  </div>
+
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="header-avatar">👵</div>
+    <div class="header-info">
+      <div class="header-name">Jean</div>
+      <div class="header-status" id="jean-status">Checking...</div>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div id="messages">
+    <div class="empty-state" id="empty-msg">
+      👋 Say hello to Jean!<br>She'll see your message when she opens her chat.
+    </div>
+  </div>
+
+  <!-- Typing indicator -->
+  <div id="typing-indicator"></div>
+
+  <!-- Input area -->
+  <div class="input-area">
+    <textarea
+      id="message-input"
+      placeholder="Message Jean..."
+      rows="1"
+      onkeydown="handleKey(event)"
+      oninput="onTyping()"
+    ></textarea>
+    <button id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ── State ────────────────────────────────────────────────────
+let socket      = null;
+let myName      = '';
+let roomId      = '';
+let typingTimer = null;
+
+// ── Init ─────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  // Get the room ID from the URL: /chat/abc123 → abc123
+  const pathParts = window.location.pathname.split('/');
+  roomId = pathParts[pathParts.length - 1];
+
+  if (!roomId) {
+    showError();
+    return;
+  }
+
+  // Validate the room with the server before connecting
+  try {
+    const res  = await fetch(`/api/room/${roomId}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError();
+      return;
+    }
+
+    myName = data.name;
+    document.title = `Chat with Jean — ${myName}`;
+
+    // Load message history
+    await loadHistory();
+
+    // Connect the socket
+    connectSocket();
+
+  } catch (err) {
+    console.error(err);
+    showError();
+  }
+});
+
+// ── Socket ────────────────────────────────────────────────────
+function connectSocket() {
+  socket = io();
+
+  socket.on('connect', () => {
+    socket.emit('family-connect', { roomId });
+  });
+
+  socket.on('family-authenticated', ({ name }) => {
+    showApp();
+  });
+
+  socket.on('auth-error', (msg) => {
+    showError();
+  });
+
+  // New message received
+  socket.on('new-message', ({ message }) => {
+    removeEmptyState();
+    appendMessage(message);
+    scrollToBottom();
+    if (message.from === 'jean') {
+      sendBrowserNotification('Jean', message.text);
+    }
+  });
+
+  // Jean's online/offline status
+  socket.on('jean-status', ({ online }) => {
+    updateJeanStatus(online);
+  });
+
+  // Jean is typing
+  socket.on('jean-typing', () => {
+    showTyping();
+  });
+
+  socket.on('jean-stopped-typing', () => {
+    hideTyping();
+  });
+
+  // Jean read our messages
+  socket.on('jean-read', () => {
+    markMessagesRead();
+  });
+
+  socket.on('disconnect', () => {
+    updateJeanStatus(false);
+  });
+
+  socket.on('reconnect', () => {
+    socket.emit('family-connect', { roomId });
+  });
+
+  // Request browser notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// ── Load Message History ──────────────────────────────────────
+async function loadHistory() {
+  try {
+    const res      = await fetch(`/api/messages/${roomId}`);
+    const messages = await res.json();
+
+    if (!Array.isArray(messages) || messages.length === 0) return;
+
+    removeEmptyState();
+    let lastDate = null;
+
+    messages.forEach(msg => {
+      const msgDate = new Date(msg.timestamp).toDateString();
+      if (msgDate !== lastDate) {
+        appendDayDivider(msg.timestamp);
+        lastDate = msgDate;
+      }
+      appendMessage(msg);
+    });
+
+    scrollToBottom();
+  } catch (err) {
+    console.error('Failed to load history:', err);
+  }
+}
+
+// ── Send a Message ────────────────────────────────────────────
+function sendMessage() {
+  const input = document.getElementById('message-input');
+  const text  = input.value.trim();
+  if (!text || !socket) return;
+
+  removeEmptyState();
+
+  // Show immediately (optimistic)
+  appendMessage({
+    from:      'family',
+    name:      myName,
+    text,
+    timestamp: new Date().toISOString()
+  }, true /* isMe */);
+
+  socket.emit('family-message', { text });
+  input.value = '';
+  input.style.height = 'auto';
+  scrollToBottom();
+}
+
+// ── Typing ────────────────────────────────────────────────────
+function onTyping() {
+  const ta = document.getElementById('message-input');
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 100) + 'px';
+
+  if (!socket) return;
+  socket.emit('typing-start');
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => {
+    if (socket) socket.emit('typing-stop');
+  }, 1500);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// ── UI Helpers ────────────────────────────────────────────────
+function showApp() {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('app').style.display           = 'flex';
+}
+
+function showError() {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('error-screen').style.display  = 'flex';
+}
+
+function updateJeanStatus(online) {
+  const statusEl  = document.getElementById('jean-status');
+  const bannerEl  = document.getElementById('jean-offline-banner');
+
+  if (online) {
+    statusEl.textContent  = '🟢 Online now';
+    statusEl.className    = 'header-status online';
+    bannerEl.style.display = 'none';
+  } else {
+    statusEl.textContent   = 'Last seen recently';
+    statusEl.className     = 'header-status';
+    bannerEl.style.display = 'block';
+  }
+}
+
+function removeEmptyState() {
+  const empty = document.getElementById('empty-msg');
+  if (empty) empty.remove();
+}
+
+function appendMessage(msg, isMe = false) {
+  const container = document.getElementById('messages');
+  const fromJean  = msg.from === 'jean';
+  const cssClass  = fromJean ? 'from-jean' : 'from-me';
+  const timeStr   = formatTime(msg.timestamp);
+
+  const div       = document.createElement('div');
+  div.className   = `message ${cssClass}`;
+  div.dataset.from = msg.from;
+
+  div.innerHTML = `
+    ${fromJean ? `<div class="msg-sender">Jean 💜</div>` : ''}
+    <div class="msg-bubble ${msg.broadcast ? 'broadcast' : ''}">${escHtml(msg.text)}</div>
+    <div class="msg-time">${timeStr}</div>
+  `;
+
+  container.appendChild(div);
+}
+
+function appendDayDivider(timestamp) {
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg-day-divider';
+  div.innerHTML = `<span>${formatDate(timestamp)}</span>`;
+  container.appendChild(div);
+}
+
+function markMessagesRead() {
+  // Could add "Read by Jean ✓" indicator here in the future
+}
+
+function showTyping() {
+  const el = document.getElementById('typing-indicator');
+  el.innerHTML = `
+    <div class="typing-bubble">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  setTimeout(scrollToBottom, 10);
+}
+
+function hideTyping() {
+  document.getElementById('typing-indicator').innerHTML = '';
+}
+
+function scrollToBottom() {
+  const m = document.getElementById('messages');
+  m.scrollTop = m.scrollHeight;
+}
+
+function sendBrowserNotification(name, text) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    if (!document.hasFocus()) {
+      new Notification(`💜 ${name} sent you a message`, { body: text });
+    }
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDate(ts) {
+  const d     = new Date(ts);
+  const today = new Date();
+  const yest  = new Date(); yest.setDate(yest.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return 'Today';
+  if (d.toDateString() === yest.toDateString())  return 'Yesterday';
+  return d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
