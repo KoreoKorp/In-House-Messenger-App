@@ -1080,17 +1080,7 @@ function quickSend(text) {
     return;
   }
 
-  // Special case: "I need help" broadcasts to everyone
-  if (text.startsWith('🚨')) {
-    pendingBroadcastText = text;
-    document.getElementById('broadcast-msg-preview').textContent =
-      'This will send to ALL of your family and friends at once.';
-    document.getElementById('overlay').style.display = 'block';
-    document.getElementById('broadcast-confirm').style.display = 'block';
-    return;
-  }
-
-  // Regular quick message goes just to the active chat
+  // All quick messages (including "I need help") go only to the active chat
   appendMessage({
     from:      'jean',
     name:      'Jean',
