@@ -947,16 +947,12 @@ async function loadContacts() {
 // ── Render Contact List ───────────────────────────────────────
 function renderContacts() {
   const list = document.getElementById('contact-list');
-  const noMsg = document.getElementById('no-contacts-msg');
 
   if (contacts.length === 0) {
-    list.innerHTML = '';
-    list.appendChild(noMsg);
-    noMsg.style.display = 'block';
+    list.innerHTML = '<div class="no-contacts" id="no-contacts-msg">No contacts yet.<br>Ask to have some added!</div>';
     return;
   }
 
-  noMsg.style.display = 'none';
   list.innerHTML = contacts.map(c => {
     const initial   = c.name.charAt(0).toUpperCase();
     const preview   = c.lastMessage ? truncate(c.lastMessage.text, 40) : 'No messages yet';
