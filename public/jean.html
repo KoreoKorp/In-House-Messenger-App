@@ -332,7 +332,7 @@
     }
 
     #back-btn {
-      display: none; /* shown on mobile */
+      display: flex; /* always show so Jean can return to contact list */
       background: var(--purple-light);
       color: var(--purple);
       border: none;
@@ -361,7 +361,8 @@
     #chat-person-name { font-size: 20px; font-weight: 700; color: var(--text); }
     #chat-person-status { font-size: 14px; color: var(--gray); margin-top: 1px; }
 
-    #call-btn {
+    /* #call-btn removed — caused external window to open */
+    ._unused-call-btn {
       background: var(--blue);
       color: white;
       border: none;
@@ -376,10 +377,6 @@
       transition: background 0.15s;
       white-space: nowrap;
     }
-    #call-btn:hover  { background: #1D4ED8; }
-    #call-btn:active { transform: scale(0.97); }
-    #call-btn.no-phone { display: none; }
-
     /* Messages list */
     #messages {
       flex: 1;
@@ -728,7 +725,6 @@
             <div id="chat-person-name">Name</div>
             <div id="chat-person-status">Offline</div>
           </div>
-          <a id="call-btn" href="#" onclick="return false;">📞 Call</a>
         </div>
 
         <!-- Messages -->
@@ -997,16 +993,6 @@ async function openChat(roomId) {
   document.getElementById('chat-person-avatar').textContent = initial;
   document.getElementById('chat-person-name').textContent   = contact.name;
   document.getElementById('chat-person-status').textContent = contact.online ? '🟢 Online now' : 'Last seen recently';
-
-  // Call button — only show if phone number is saved
-  const callBtn = document.getElementById('call-btn');
-  if (contact.phone) {
-    callBtn.href = `tel:${contact.phone}`;
-    callBtn.onclick = null;
-    callBtn.classList.remove('no-phone');
-  } else {
-    callBtn.classList.add('no-phone');
-  }
 
   // Clear messages and load history
   document.getElementById('messages').innerHTML = '';
