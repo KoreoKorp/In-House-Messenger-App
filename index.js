@@ -1,6 +1,7 @@
 // ============================================================
 // IN-HOUSE MESSENGER API
 // ============================================================
+/* eslint-disable security/detect-object-injection */
 // A simple REST API that sends SMS messages via Twilio.
 // Designed to be called from your other apps.
 //

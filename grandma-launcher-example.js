@@ -1,6 +1,7 @@
 // ============================================================
 // GRANDMA LAUNCHER — Example Integration
 // ============================================================
+/* eslint-disable no-unused-vars */
 // This shows how The Grandma Launcher can use the Messenger API
 // to send texts when Grandma presses a button.
 //

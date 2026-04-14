@@ -7,9 +7,9 @@
  * Usage: node import-vcf-contacts.js <path-to-file.vcf>
  * Example: node import-vcf-contacts.js "/path/to/Grammie Contacts.vcf"
  */
+/* eslint-disable security/detect-object-injection */
 
 const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 const http = require('http');
 
@@ -109,7 +109,7 @@ function makeRequest(method, path, data) {
         try {
           const json = body ? JSON.parse(body) : {};
           resolve({ status: res.statusCode, data: json });
-        } catch (e) {
+        } catch {
           resolve({ status: res.statusCode, data: body });
         }
       });
@@ -201,7 +201,7 @@ async function main() {
 
     // Print summary
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`✅ IMPORT COMPLETE`);
+    console.log('✅ IMPORT COMPLETE');
     console.log(`${'='.repeat(60)}`);
     console.log(`Successfully imported: ${successful}/${contacts.length}`);
     if (failed > 0) {
@@ -210,7 +210,7 @@ async function main() {
 
     // Print chat links for successful imports
     if (successful > 0) {
-      console.log(`\n📱 Chat Links for Each Contact:`);
+      console.log('\n📱 Chat Links for Each Contact:');
       console.log(`${'='.repeat(60)}`);
       results
         .filter(r => r.success)
@@ -224,7 +224,7 @@ async function main() {
     // List failures if any
     const failures = results.filter(r => !r.success);
     if (failures.length > 0) {
-      console.log(`\n⚠️  Failed Imports:`);
+      console.log('\n⚠️  Failed Imports:');
       console.log(`${'='.repeat(60)}`);
       failures.forEach(f => {
         console.log(`\n❌ ${f.name} (${f.phone})`);
