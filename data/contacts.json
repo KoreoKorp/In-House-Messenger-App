@@ -17,5 +17,16 @@
     "roomId": "51572f1015f624865a76de36",
     "createdAt": "2026-04-02T01:22:55.847Z",
     "allowedIP": "::ffff:127.0.0.1"
+  },
+  {
+    "id": "8377502a",
+    "name": "Julian Kellman",
+    "phone": "313588-0100",
+    "roomId": "df325859c355f1d9ad1b5ecd",
+    "slug": "julianson",
+    "pin": "1216",
+    "allowedIP": "107.136.238.107",
+    "sessionToken": "7219bdbb7ee1aa8335a8356bfd55a8fd",
+    "createdAt": "2026-04-14T22:38:08.046Z"
   }
 ]
