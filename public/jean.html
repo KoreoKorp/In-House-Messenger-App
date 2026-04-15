@@ -821,10 +821,20 @@ function connectSocket(pin) {
     socket.emit('jean-connect', { pin });
   });
 
-  socket.on('jean-authenticated', () => {
+  socket.on('jean-authenticated', async () => {
     sessionStorage.setItem('jean-pin', pin);
     showApp();
-    loadContacts();
+    await loadContacts();
+
+    // Auto-open a specific chat if launched via URL parameter (e.g., ?room=corey)
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get('room') || params.get('chat') || params.get('id');
+    if (target) {
+      const match = contacts.find(c => c.slug === target || c.roomId === target);
+      if (match) {
+        openChat(match.roomId);
+      }
+    }
   });
 
   socket.on('auth-error', (msg) => {
