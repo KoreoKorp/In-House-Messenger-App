@@ -221,6 +221,30 @@ app.delete('/api/alerts/:id',    requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+// ── API: TURN Credentials ─────────────────────────────────────
+app.get('/api/turn', requireAdmin, (req, res) => {
+  const { TURN_URL, TURN_USERNAME, TURN_CREDENTIAL } = process.env;
+  if (!TURN_URL && !TURN_USERNAME && !TURN_CREDENTIAL) return res.json({ iceServers: [] });
+  res.json({ turnUrl: TURN_URL, turnUsername: TURN_USERNAME, turnCredential: TURN_CREDENTIAL,
+    iceServers: [{ urls: `turn:${TURN_URL}`, username: TURN_USERNAME, credential: TURN_CREDENTIAL }] });
+});
+
+// ── API: System Report via SMS ────────────────────────────────
+app.post('/send-sys-report', requireAdmin, async (req, res) => {
+  const { TWILIO_ACCOUNT_SID: sid, TWILIO_AUTH_TOKEN: token, TWILIO_FROM: from, CAREGIVER_PHONE: to } = process.env;
+  if (!sid || !token || !from || !to) { console.warn('⚠️  Twilio not configured — skipping SMS'); return res.json({ ok: false, reason: 'Twilio not configured' }); }
+  const { message } = req.body;
+  try {
+    const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Basic ' + Buffer.from(`${sid}:${token}`).toString('base64'), 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ To: to, From: from, Body: message }).toString()
+    });
+    if (!r.ok) { const e = await r.json(); return res.json({ ok: false, reason: e.message || r.statusText }); }
+    res.json({ ok: true });
+  } catch (e) { res.json({ ok: false, reason: e.message }); }
+});
+
 // ── API: Room / Messages ──────────────────────────────────────
 app.get('/api/room/:id', (req, res) => {
   const contact = findContact(req.params.id);
