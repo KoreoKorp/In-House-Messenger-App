@@ -1,6 +1,9 @@
 # IMPORTANT: Never commit your .env file — it contains secret keys!
 .env
 
+# Runtime data — contains real PINs, phone numbers, session tokens
+data/
+
 # Node.js dependencies folder (reinstalled with npm install)
 node_modules/
 

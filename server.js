@@ -16,22 +16,32 @@ const crypto     = require('crypto');
 
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*' } });
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
+const io     = new Server(server, { cors: { origin: ALLOWED_ORIGIN } });
 
 // ── Startup Checks ───────────────────────────────────────────
 if (!process.env.JEAN_PIN)       { console.error('❌ JEAN_PIN not set');       process.exit(1); }
 if (!process.env.ADMIN_PASSWORD) { console.error('❌ ADMIN_PASSWORD not set'); process.exit(1); }
 
 // ── Data Storage ─────────────────────────────────────────────
-const DATA_DIR      = path.join(__dirname, 'data');
-const CONTACTS_FILE = path.join(DATA_DIR, 'contacts.json');
-const MESSAGES_DIR  = path.join(DATA_DIR, 'messages');
-const ALERTS_FILE   = path.join(DATA_DIR, 'alerts.json');
+const DATA_DIR        = path.join(__dirname, 'data');
+const CONTACTS_FILE   = path.join(DATA_DIR, 'contacts.json');
+const MESSAGES_DIR    = path.join(DATA_DIR, 'messages');
+const ALERTS_FILE     = path.join(DATA_DIR, 'alerts.json');
+const LAUNCHER_FILE   = path.join(DATA_DIR, 'launcher.json');
 
 if (!fs.existsSync(DATA_DIR))      fs.mkdirSync(DATA_DIR,     { recursive: true });
 if (!fs.existsSync(MESSAGES_DIR))  fs.mkdirSync(MESSAGES_DIR, { recursive: true });
 if (!fs.existsSync(CONTACTS_FILE)) fs.writeFileSync(CONTACTS_FILE, '[]');
 if (!fs.existsSync(ALERTS_FILE))   fs.writeFileSync(ALERTS_FILE,   '[]');
+
+// TOFU launcher auth — first registration wins; subsequent must match
+function getLauncherToken() {
+  try { return JSON.parse(fs.readFileSync(LAUNCHER_FILE, 'utf8')).authToken || null; } catch { return null; }
+}
+function saveLauncherToken(token) {
+  fs.writeFileSync(LAUNCHER_FILE, JSON.stringify({ authToken: token }));
+}
 
 // ── Contact Helpers ───────────────────────────────────────────
 function getContacts() {
@@ -119,11 +129,18 @@ function checkPinRateLimit(ip) {
 }
 
 // ── Middleware ────────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key, x-jean-pin, x-session-token');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 function requireAdmin(req, res, next) {
-  const key = req.headers['x-admin-key'] || req.query.key;
+  const key = req.headers['x-admin-key'];
   if (!key || key !== process.env.ADMIN_PASSWORD) return res.status(401).json({ error: 'Unauthorized' });
   next();
 }
@@ -255,12 +272,24 @@ app.get('/api/room/:id', (req, res) => {
 app.get('/api/messages/:id', (req, res) => {
   const contact = findContact(req.params.id);
   if (!contact) return res.status(404).json({ error: 'Invalid room' });
+
+  // Admin key or a valid session token from the contact's device
+  const adminKey = req.headers['x-admin-key'];
+  const sessionToken = req.headers['x-session-token'];
+  const jeanPin = req.headers['x-jean-pin'];
+
+  const isAdmin   = adminKey && adminKey === process.env.ADMIN_PASSWORD;
+  const isFamily  = sessionToken && sessionToken === contact.sessionToken;
+  const isJean    = jeanPin && jeanPin === process.env.JEAN_PIN;
+
+  if (!isAdmin && !isFamily && !isJean) return res.status(401).json({ error: 'Unauthorized' });
+
   res.json(getMessages(contact.roomId));
 });
 
 // Jean's sidebar — all rooms with unread counts
 app.get('/api/jean/rooms', (req, res) => {
-  const pin = req.headers['x-jean-pin'] || req.query.pin;
+  const pin = req.headers['x-jean-pin'];
   if (!pin || pin !== process.env.JEAN_PIN) return res.status(401).json({ error: 'Unauthorized' });
 
   const rooms = getContacts().map(contact => {
@@ -414,7 +443,20 @@ io.on('connection', (socket) => {
   socket.on('jean-stopped-typing', ({ roomId }) => { if (!socket.isJean) return; socket.to(roomId).emit('jean-stopped-typing'); });
 
   // ── Launcher registration ──────────────────────────────────
-  socket.on('register', ({ deviceId }) => {
+  socket.on('register', ({ deviceId, authToken }) => {
+    const storedToken = getLauncherToken();
+    if (storedToken) {
+      // Token already registered — must match
+      if (authToken !== storedToken) {
+        socket.emit('auth-error', 'Launcher token mismatch. Reset launcher.json on the server to re-pair.');
+        console.warn('🛑 Launcher registration rejected — token mismatch');
+        return;
+      }
+    } else {
+      // First connection — trust and persist (TOFU)
+      if (authToken) saveLauncherToken(authToken);
+      console.log(`🖥️  Launcher token registered (TOFU, device: ${deviceId})`);
+    }
     launcherSocket = socket; socket.isLauncher = true;
     console.log(`🖥️  Launcher registered (device: ${deviceId})`);
   });
