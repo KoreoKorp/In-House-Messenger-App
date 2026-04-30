@@ -117,7 +117,7 @@
     .num-btn.submit:active { background: var(--purple-dark); }
 
     /* ── Chat Screen ─────────────────────────────────────────── */
-    #chat-screen { display: none; flex-direction: column; height: 100vh; }
+    #chat-screen { display: none; flex-direction: column; position: fixed; inset: 0; }
 
     #chat-header {
       background: var(--purple);
@@ -173,6 +173,7 @@
 
     #input-area {
       padding: 12px 14px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
       border-top: 1px solid var(--border);
       display: flex;
       gap: 10px;
@@ -588,6 +589,15 @@ function escHtml(str) {
 }
 
 init();
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', function() {
+    var screen = document.getElementById('chat-screen');
+    if (screen && screen.style.display !== 'none') {
+      screen.style.height = window.visualViewport.height + 'px';
+    }
+  });
+}
 </script>
 </body>
 </html>
