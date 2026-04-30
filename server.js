@@ -150,6 +150,7 @@ app.get('/api/health', (_, res) => res.json({ ok: true }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'public', 'jean.html')));
 app.get('/jean',      (_, res) => res.sendFile(path.join(__dirname, 'public', 'jean.html')));
 app.get('/admin',     (_, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/chat',      (_, res) => res.sendFile(path.join(__dirname, 'public', 'jean.html')));
 app.get('/chat/:id',  (_, res) => res.sendFile(path.join(__dirname, 'public', 'family.html')));
 
 // ── API: Contacts ─────────────────────────────────────────────
