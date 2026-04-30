@@ -1,0 +1,10 @@
+services:
+  messenger:
+    build: .
+    container_name: jeans-messenger
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "3002:3000"
