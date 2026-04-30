@@ -591,12 +591,15 @@ function escHtml(str) {
 init();
 
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', function() {
-    var screen = document.getElementById('chat-screen');
-    if (screen && screen.style.display !== 'none') {
-      screen.style.height = window.visualViewport.height + 'px';
-    }
-  });
+  function syncViewport() {
+    var chatScreen = document.getElementById('chat-screen');
+    if (!chatScreen || chatScreen.style.display === 'none') return;
+    chatScreen.style.top    = window.visualViewport.offsetTop + 'px';
+    chatScreen.style.height = window.visualViewport.height + 'px';
+    chatScreen.style.bottom = 'auto';
+  }
+  window.visualViewport.addEventListener('resize', syncViewport);
+  window.visualViewport.addEventListener('scroll', syncViewport);
 }
 </script>
 </body>
